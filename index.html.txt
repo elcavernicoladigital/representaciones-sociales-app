@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorador Interactivo de Representaciones Sociales</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: A single-page application with a fixed sidebar navigation for thematic exploration. The structure guides the user from foundational concepts (What are SRs?), to their construction (Anchoring/Objectification), to the core thesis (The Integrated Model), and finally to practical application (Methodology). This thematic, non-linear structure is chosen to make a dense academic topic digestible and explorable, preventing user overwhelm and allowing direct access to specific concepts. Key interactions include clickable diagrams to reveal definitions and an interactive flowchart to explain the central model. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: SR Structure (Core/Periphery) -> Goal: Explain -> Viz: Interactive HTML/CSS Diagram -> Interaction: Click to show details -> Justification: Visually separates and defines the two key components, encouraging exploration.
+        - Report Info: Construction Processes (Anchoring/Objectification) -> Goal: Compare & Explain -> Viz: Two-column layout with clickable cards -> Interaction: Click to reveal definitions & examples -> Justification: Facilitates direct comparison and breaks down sub-processes into manageable chunks.
+        - Report Info: Integrated Model (Processes -> Attitudes -> Behavior) -> Goal: Visualize the core thesis -> Viz: HTML/CSS Flowchart + Chart.js Radar Chart -> Interaction: Hover over flowchart steps to get details -> Justification: Effectively shows the cyclical and interconnected nature of the model, which is the report's central argument. The radar chart is an ideal visualization for the tri-component model of attitudes.
+        - Report Info: Methodology (Table 3) -> Goal: Organize & Present -> Viz: Interactive HTML/CSS Grid + Chart.js Donut Chart -> Interaction: Click grid cells for info -> Justification: Transforms a static table into a queryable, less dense interface. The donut chart gives a quick overview of the recommended research approaches.
+        - Library/Method: Chart.js for all charts (Canvas), HTML/CSS/JS for diagrams and interactions. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .nav-link.active {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .card-flip {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .card-flipper:hover .card-flip {
+            transform: rotateY(180deg);
+        }
+
+        .card-front,
+        .card-back {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #065f46;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-stone-50 text-stone-800">
+
+    <div class="flex">
+        <aside class="fixed top-0 left-0 h-screen w-64 bg-white shadow-md p-5 flex flex-col">
+            <h1 class="text-xl font-bold text-teal-800 mb-8">Representaciones Sociales</h1>
+            <nav id="main-nav" class="flex flex-col space-y-2">
+                <a href="#inicio" data-target="inicio"
+                    class="nav-link active px-4 py-2 rounded-lg hover:bg-stone-100 transition-colors duration-200">
+                    <span class="mr-2">🏠</span> Inicio
+                </a>
+                <a href="#fundamentos" data-target="fundamentos"
+                    class="nav-link px-4 py-2 rounded-lg hover:bg-stone-100 transition-colors duration-200">
+                    <span class="mr-2">🏛️</span> Fundamentos
+                </a>
+                <a href="#construccion" data-target="construccion"
+                    class="nav-link px-4 py-2 rounded-lg hover:bg-stone-100 transition-colors duration-200">
+                    <span class="mr-2">🏗️</span> Procesos de Construcción
+                </a>
+                <a href="#modelo" data-target="modelo"
+                    class="nav-link px-4 py-2 rounded-lg hover:bg-stone-100 transition-colors duration-200">
+                    <span class="mr-2">🔄</span> El Modelo Integrador
+                </a>
+                <a href="#metodologia" data-target="metodologia"
+                    class="nav-link px-4 py-2 rounded-lg hover:bg-stone-100 transition-colors duration-200">
+                    <span class="mr-2">🔬</span> Metodología de Estudio
+                </a>
+                <a href="#conclusiones" data-target="conclusiones"
+                    class="nav-link px-4 py-2 rounded-lg hover:bg-stone-100 transition-colors duration-200">
+                    <span class="mr-2">📜</span> Conclusiones
+                </a>
+            </nav>
+            <div class="mt-auto text-xs text-stone-400">
+                <p>Aplicación interactiva basada en la metodología de las Representaciones Sociales.</p>
+            </div>
+        </aside>
+
+        <main class="ml-64 p-6 md:p-12 w-full">
+            <div id="inicio" class="content-section active">
+                <div class="bg-white p-8 rounded-xl shadow-sm animate-fade-in">
+                    <h2 class="text-3xl font-bold text-teal-700 mb-4">Explorando el Pensamiento Colectivo</h2>
+                    <p class="text-lg text-stone-600 mb-6">
+                        Bienvenido a la guía interactiva sobre la Teoría de las Representaciones Sociales (RS). Esta
+                        aplicación está diseñada para desglosar una de las teorías más influyentes de la psicología
+                        social de una manera clara y accesible. Las RS son los sistemas de conocimiento del sentido
+                        común que utilizamos para entender nuestro mundo, guiar nuestras acciones y comunicarnos.
+                    </p>
+                    <div class="bg-teal-50 border-l-4 border-teal-500 text-teal-800 p-4 rounded-r-lg">
+                        <p>Navegue por las secciones utilizando el menú de la izquierda para explorar los conceptos
+                            fundamentales, los procesos de construcción, el modelo integrador que conecta las RS con las
+                            actitudes y la metodología para su estudio. Cada sección contiene elementos interactivos
+                            para facilitar el aprendizaje.</p>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Definidor de Fenómenos Sociales ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese un fenómeno social (ej. "Inteligencia Artificial",
+                            "Cambio Climático") y obtenga una definición concisa desde la perspectiva de las
+                            Representaciones Sociales.</p>
+                        <input type="text" id="define-phenomenon-input" placeholder="Escriba un fenómeno social aquí..." class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <button id="define-phenomenon-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md">
+                            Definir Fenómeno ✨
+                        </button>
+                        <div id="define-phenomenon-loading-indicator"
+                            class="text-center text-blue-700 font-semibold mt-4 hidden">
+                            Definiendo... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-defined-phenomenon"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            La definición del fenómeno aparecerá aquí.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="fundamentos" class="content-section">
+                <div class="bg-white p-8 rounded-xl shadow-sm">
+                    <h2 class="text-3xl font-bold text-teal-700 mb-2">Fundamentos: La Estructura de una Representación
+                        Social</h2>
+                    <p class="text-stone-600 mb-8">Toda Representación Social está organizada jerárquicamente en dos
+                        componentes clave: un núcleo central estable y elementos periféricos flexibles. Esta estructura
+                        dual le da tanto coherencia como capacidad de adaptación. Haga clic en los componentes del
+                        diagrama para saber más.</p>
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-8">
+                        <div class="w-full md:w-1/2 flex items-center justify-center p-4">
+                            <div class="relative flex items-center justify-center">
+                                <div id="diagram-core"
+                                    class="w-48 h-48 bg-teal-600 rounded-full flex items-center justify-center text-white font-bold text-center cursor-pointer shadow-lg hover:scale-105 transition-transform">
+                                    Núcleo Central</div>
+                                <div class="absolute top-0 left-0 w-full h-full animate-spin-slow">
+                                    <div id="diagram-periphery-1"
+                                        class="absolute top-[-20px] left-[50%] ml-[-30px] w-28 h-28 bg-amber-400 rounded-full flex items-center justify-center text-sm text-center text-amber-900 cursor-pointer shadow-md hover:bg-amber-500 transition-colors">
+                                        Elemento Periférico</div>
+                                    <div id="diagram-periphery-2"
+                                        class="absolute bottom-[-20px] right-[-30px] w-24 h-24 bg-amber-400 rounded-full flex items-center justify-center text-sm text-center text-amber-900 cursor-pointer shadow-md hover:bg-amber-500 transition-colors">
+                                        Adaptación</div>
+                                    <div id="diagram-periphery-3"
+                                        class="absolute top-[50%] mt-[-30px] left-[-40px] w-20 h-20 bg-amber-400 rounded-full flex items-center justify-center text-sm text-center text-amber-900 cursor-pointer shadow-md hover:bg-amber-500 transition-colors">
+                                        Contexto</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="diagram-info" class="w-full md:w-1/2 bg-stone-100 p-6 rounded-lg min-h-[200px]">
+                            <h3 id="info-title" class="font-bold text-xl text-teal-800 mb-2">Haga clic en un elemento
+                            </h3>
+                            <p id="info-text" class="text-stone-700">Seleccione un componente del diagrama para ver su
+                                definición y funciones.</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Analizador de Fenómenos Sociales ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese un fenómeno social (ej. "Inteligencia Artificial",
+                            "Pandemia de COVID-19") y obtenga una sugerencia de sus posibles elementos centrales y
+                            periféricos en una Representación Social.</p>
+                        <input type="text" id="phenomenon-input" placeholder="Escriba un fenómeno social aquí..." class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <button id="analyze-phenomenon-btn" class="w-full bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors duration-200 shadow-md">
+                            Analizar Fenómeno ✨
+                        </button>
+                        <div id="phenomenon-loading-indicator"
+                            class="text-center text-purple-700 font-semibold mt-4 hidden">
+                            Analizando... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-analyzed-phenomenon"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            El análisis del fenómeno aparecerá aquí.
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Generador de Conceptos Clave ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese un fenómeno social y obtenga una lista de conceptos clave
+                            relacionados desde la perspectiva de las Representaciones Sociales.</p>
+                        <input type="text" id="key-concepts-phenomenon-input" placeholder="Escriba un fenómeno social aquí..." class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <button id="generate-key-concepts-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-colors duration-200 shadow-md">
+                            Generar Conceptos Clave ✨
+                        </button>
+                        <div id="key-concepts-loading-indicator"
+                            class="text-center text-indigo-700 font-semibold mt-4 hidden">
+                            Generando conceptos... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-generated-key-concepts"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            Los conceptos clave aparecerán aquí.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="construccion" class="content-section">
+                <div class="bg-white p-8 rounded-xl shadow-sm">
+                    <h2 class="text-3xl font-bold text-teal-700 mb-2">Procesos de Construcción: Anclaje y Objetivación
+                    </h2>
+                    <p class="text-stone-600 mb-8">Las Representaciones Sociales se forman a través de dos procesos
+                        interdependientes: la objetivación transforma lo abstracto en concreto, mientras que el anclaje
+                        integra lo nuevo en lo familiar. Explore las tarjetas para ver sus subprocesos y ejemplos.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-2xl font-semibold text-center mb-4 text-teal-800">Objetivación</h3>
+                            <div class="space-y-4">
+                                <div class="card-flipper">
+                                    <div class="card-flip relative w-full h-24">
+                                        <div
+                                            class="card-front absolute w-full h-full bg-teal-200 rounded-lg p-4 flex items-center justify-center cursor-pointer shadow">
+                                            <p class="font-bold text-teal-900">Esquema Figurativo</p>
+                                        </div>
+                                        <div
+                                            class="card-back absolute w-full h-full bg-teal-500 text-white rounded-lg p-4 flex items-center justify-center text-center text-sm">
+                                            <p>Sintetiza información en una imagen o idea central. Ej: Un gráfico de
+                                                virus para representar una pandemia.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-flipper">
+                                    <div class="card-flip relative w-full h-24">
+                                        <div
+                                            class="card-front absolute w-full h-full bg-teal-200 rounded-lg p-4 flex items-center justify-center cursor-pointer shadow">
+                                            <p class="font-bold text-teal-900">Personificación</p>
+                                        </div>
+                                        <div
+                                            class="card-back absolute w-full h-full bg-teal-500 text-white rounded-lg p-4 flex items-center justify-center text-center text-sm">
+                                            <p>Vincula una idea a una persona. Ej: Al Gore como figura del cambio
+                                                climático.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-semibold text-center mb-4 text-amber-800">Anclaje</h3>
+                            <div class="space-y-4">
+                                <div class="card-flipper">
+                                    <div class="card-flip relative w-full h-24">
+                                        <div
+                                            class="card-front absolute w-full h-full bg-amber-200 rounded-lg p-4 flex items-center justify-center cursor-pointer shadow">
+                                            <p class="font-bold text-amber-900">Nominación (Naming)</p>
+                                        </div>
+                                        <div
+                                            class="card-back absolute w-full h-full bg-amber-500 text-white rounded-lg p-4 flex items-center justify-center text-center text-sm">
+                                            <p>Dar un nombre a un fenómeno para hacerlo reconocible. Ej: Etiquetar un
+                                                movimiento como "protesta".</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-flipper">
+                                    <div class="card-flip relative w-full h-24">
+                                        <div
+                                            class="card-front absolute w-full h-full bg-amber-200 rounded-lg p-4 flex items-center justify-center cursor-pointer shadow">
+                                            <p class="font-bold text-amber-900">Anclaje por Metáforas</p>
+                                        </div>
+                                        <div
+                                            class="card-back absolute w-full h-full bg-amber-500 text-white rounded-lg p-4 flex items-center justify-center text-center text-sm">
+                                            <p>Usar metáforas para entender algo complejo. Ej: La "guerra contra las
+                                                drogas".</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Generador de Ejemplos ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese un concepto (ej. "Inteligencia Artificial", "Cambio
+                            Climático") y genere un ejemplo de cómo podría ser anclado u objetivado en una
+                            representación social.</p>
+                        <input type="text" id="concept-input" placeholder="Escriba un concepto aquí..." class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                            <button id="generate-anchoring-btn" class="flex-1 bg-amber-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-amber-700 transition-colors duration-200 shadow-md">
+                                Generar Ejemplo de Anclaje ✨
+                            </button>
+                            <button id="generate-objectification-btn" class="flex-1 bg-teal-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-700 transition-colors duration-200 shadow-md">
+                                Generar Ejemplo de Objetivación ✨
+                            </button>
+                        </div>
+                        <div id="llm-loading-indicator" class="text-center text-teal-700 font-semibold mt-4 hidden">
+                            Generando ejemplo... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-generated-example"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            El ejemplo generado aparecerá aquí.
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Identificador de Representaciones en Discurso
+                            ✨</h3>
+                        <p class="text-stone-600 mb-4">Pegue un texto o discurso y la aplicación intentará identificar
+                            posibles Representaciones Sociales presentes, explicando cómo se manifiestan.</p>
+                        <textarea id="discourse-input" placeholder="Pegue su texto o discurso aquí..." class="w-full p-3 border border-stone-300 rounded-lg mb-4 h-32 focus:ring-2 focus:ring-teal-400 focus:border-transparent"></textarea>
+                        <button id="identify-representations-btn" class="w-full bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-cyan-700 transition-colors duration-200 shadow-md">
+                            Identificar Representaciones ✨
+                        </button>
+                        <div id="discourse-loading-indicator"
+                            class="text-center text-cyan-700 font-semibold mt-4 hidden">
+                            Analizando discurso... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-identified-representations"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            Las representaciones identificadas aparecerán aquí.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="modelo" class="content-section">
+                <div class="bg-white p-8 rounded-xl shadow-sm">
+                    <h2 class="text-3xl font-bold text-teal-700 mb-2">El Modelo Integrador</h2>
+                    <p class="text-stone-600 mb-8">Este es el corazón del modelo: un ciclo dinámico que muestra cómo los
+                        procesos de anclaje y objetivación forman las Representaciones Sociales, que a su vez se
+                        manifiestan en actitudes (cognitivas, afectivas y conductuales) y guían nuestras acciones,
+                        creando un bucle de retroalimentación. Pase el cursor sobre cada paso del diagrama para ver los
+                        detalles.</p>
+                    <div class="flex flex-col lg:flex-row gap-6 items-start">
+                        <div class="w-full lg:w-3/5 space-y-2">
+                            <div class="flow-step p-4 border-2 border-stone-300 rounded-lg cursor-default"
+                                data-info="Todo comienza con un fenómeno social nuevo, desconocido o abstracto que un grupo necesita comprender e integrar en su realidad.">
+                                <strong>1. Fenómeno Social</strong>
+                                <span class="text-sm text-stone-500">(Ej: una nueva tecnología, una crisis sanitaria)</span>
+                            </div>
+                            <div class="flex justify-center">
+                                <div class="h-6 w-1 bg-stone-300"></div>
+                            </div>
+                            <div class="flow-step p-4 border-2 border-teal-400 rounded-lg bg-teal-50 cursor-default"
+                                data-info="El grupo utiliza la <strong>Objetivación</strong> (para hacerlo concreto) y el <strong>Anclaje</strong> (para hacerlo familiar). Estos procesos dan forma al contenido y a la estructura de la representación.">
+                                <strong>2. Procesos de Construcción</strong>
+                                <span class="text-sm text-teal-600">(Anclaje y Objetivación)</span>
+                            </div>
+                            <div class="flex justify-center">
+                                <div class="h-6 w-1 bg-stone-300"></div>
+                            </div>
+                            <div class="flow-step p-4 border-2 border-amber-400 rounded-lg bg-amber-50 cursor-default"
+                                data-info="La Representación Social emerge y se manifiesta como una <strong>Actitud</strong> colectiva. Esta actitud tiene tres componentes: <strong>Cognitivo</strong> (lo que creemos saber), <strong>Afectivo</strong> (lo que sentimos al respecto) y <strong>Conductual</strong> (nuestra predisposición a actuar).">
+                                <strong>3. Manifestación en Actitudes</strong>
+                                <span class="text-sm text-amber-600">(Cognitivo, Afectivo, Conductual)</span>
+                            </div>
+                            <div class="flex justify-center">
+                                <div class="h-6 w-1 bg-stone-300"></div>
+                            </div>
+                            <div class="flow-step p-4 border-2 border-stone-300 rounded-lg cursor-default"
+                                data-info="Las actitudes, guiadas por la RS, se traducen en <strong>Prácticas Sociales</strong> y comportamientos observables por parte de los individuos y el grupo.">
+                                <strong>4. Prácticas Sociales</strong>
+                                <span class="text-sm text-stone-500">(Acciones y comportamientos)</span>
+                            </div>
+                            <div class="flex justify-center">
+                                <div
+                                    class="h-6 w-1 bg-stone-300 rotate-90 translate-x-[-50%] translate-y-[-50%] scale-x-200 relative left-[-50%]">
+                                </div>
+                            </div>
+                            <div class="flow-step p-3 border-2 border-dashed border-stone-400 rounded-lg text-center cursor-default"
+                                data-info="Las consecuencias y experiencias de estas prácticas refuerzan o modifican la Representación Social original, cerrando el ciclo y permitiendo su evolución constante.">
+                                <strong>Bucle de Retroalimentación</strong>
+                            </div>
+                        </div>
+                        <div id="flow-info-panel" class="w-full lg:w-2/5 p-6 bg-stone-100 rounded-lg sticky top-12">
+                            <h4 class="font-bold text-lg text-teal-800 mb-2">Detalles del Modelo</h4>
+                            <p id="flow-info-text" class="text-stone-700">Pase el cursor sobre un paso del diagrama a la
+                                izquierda para ver su explicación detallada aquí.</p>
+                            <div class="chart-container mt-4 mx-auto" style="height: 250px; max-height: 250px;">
+                                <canvas id="attitudeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Analizador de Actitudes ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese un fenómeno social y obtenga una descripción de cómo los
+                            componentes cognitivo, afectivo y conductual de la actitud podrían manifestarse en relación
+                            con él.</p>
+                        <input type="text" id="attitude-phenomenon-input" placeholder="Ej: 'Vacunación', 'Redes Sociales'" class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <button id="analyze-attitude-btn" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md">
+                            Analizar Actitud ✨
+                        </button>
+                        <div id="attitude-loading-indicator"
+                            class="text-center text-green-700 font-semibold mt-4 hidden">
+                            Analizando actitud... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-analyzed-attitude"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            El análisis de la actitud aparecerá aquí.
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="2xl font-bold text-teal-700 mb-4">Sugerir Intervenciones ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese una representación social o un fenómeno social y obtenga
+                            sugerencias de intervenciones o aplicaciones prácticas basadas en cómo esta representación
+                            podría influir en actitudes y comportamientos.</p>
+                        <textarea id="intervention-input" placeholder="Ej: 'Representación social de la salud mental como debilidad'" class="w-full p-3 border border-stone-300 rounded-lg mb-4 h-24 focus:ring-2 focus:ring-teal-400 focus:border-transparent"></textarea>
+                        <button id="suggest-intervention-btn" class="w-full bg-orange-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-700 transition-colors duration-200 shadow-md">
+                            Sugerir Intervenciones ✨
+                        </button>
+                        <div id="intervention-loading-indicator"
+                            class="text-center text-orange-700 font-semibold mt-4 hidden">
+                            Generando sugerencias... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-intervention-suggestions"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            Las sugerencias de intervención aparecerán aquí.
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Generador de Escenarios Sociales ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese un fenómeno social y obtenga un breve escenario donde su
+                            representación social podría manifestarse.</p>
+                        <input type="text" id="scenario-phenomenon-input" placeholder="Ej: 'Inteligencia Artificial', 'Cambio Climático'" class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <button id="generate-scenario-btn" class="w-full bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors duration-200 shadow-md">
+                            Generar Escenario ✨
+                        </button>
+                        <div id="scenario-loading-indicator"
+                            class="text-center text-purple-700 font-semibold mt-4 hidden">
+                            Generando escenario... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-generated-scenario"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            El escenario generado aparecerá aquí.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="metodologia" class="content-section">
+                <div class="bg-white p-8 rounded-xl shadow-sm">
+                    <h2 class="text-3xl font-bold text-teal-700 mb-2">Metodología de Estudio</h2>
+                    <p class="text-stone-600 mb-8">El estudio de las RS exige un enfoque pluralista que combine métodos
+                        cualitativos y cuantitativos (triangulación). La siguiente tabla interactiva resume las técnicas
+                        de recolección y análisis recomendadas para cada dimensión de una RS. Haga clic en una celda
+                        para obtener más información.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-5 text-center font-bold bg-stone-200 p-2 rounded-t-lg">
+                        <div class="p-2">Dimensión</div>
+                        <div class="p-2 col-span-2">Técnicas de Recolección</div>
+                        <div class="p-2 col-span-2">Técnicas de Análisis</div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-5 text-center border border-stone-200 rounded-b-lg">
+                        <div class="font-semibold bg-stone-100 p-3 flex items-center justify-center">Núcleo Central
+                        </div>
+                        <div class="p-3 border-l col-span-2">Asociación libre, Entrevistas, Mapas conceptuales</div>
+                        <div class="p-3 border-l col-span-2">Análisis estructural, Análisis lexicométrico</div>
+
+                        <div class="font-semibold bg-stone-100 p-3 border-t flex items-center justify-center">
+                            Componentes Actitudinales</div>
+                        <div class="p-3 border-l border-t col-span-2">Cuestionarios (Escalas Likert), Entrevistas</div>
+                        <div class="p-3 border-l border-t col-span-2">Análisis factorial, Análisis de regresión</div>
+
+                        <div class="font-semibold bg-stone-100 p-3 border-t flex items-center justify-center">Prácticas
+                            Sociales</div>
+                        <div class="p-3 border-l border-t col-span-2">Observación participante, Análisis de documentos
+                        </div>
+                        <div class="p-3 border-l border-t col-span-2">Análisis del discurso, Análisis temático</div>
+                    </div>
+                    <div class="mt-8">
+                        <h3 class="text-2xl font-semibold text-center mb-4 text-teal-800">Enfoque Metodológico</h3>
+                        <div class="chart-container" style="height: 300px; max-height: 300px;">
+                            <canvas id="methodologyChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Sugerencias Metodológicas ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese una pregunta de investigación y obtenga sugerencias de
+                            metodologías y técnicas para estudiar Representaciones Sociales.</p>
+                        <textarea id="research-question-input" placeholder="Ej: ¿Cómo perciben los jóvenes el cambio climático en zonas rurales?" class="w-full p-3 border border-stone-300 rounded-lg mb-4 h-24 focus:ring-2 focus:ring-teal-400 focus:border-transparent"></textarea>
+                        <button id="suggest-methodology-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md">
+                            Sugerir Metodología ✨
+                        </button>
+                        <div id="methodology-loading-indicator"
+                            class="text-center text-blue-700 font-semibold mt-4 hidden">
+                            Generando sugerencias... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-suggested-methodology"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            Las sugerencias de metodología aparecerán aquí.
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Generador de Preguntas de Investigación ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese un fenómeno social y obtenga sugerencias de preguntas de
+                            investigación en el marco de las Representaciones Sociales.</p>
+                        <input type="text" id="research-question-phenomenon-input" placeholder="Escriba un fenómeno social aquí..." class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <button id="generate-research-questions-btn" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md">
+                            Generar Preguntas ✨
+                        </button>
+                        <div id="research-questions-loading-indicator"
+                            class="text-center text-green-700 font-semibold mt-4 hidden">
+                            Generando preguntas... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-generated-research-questions"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            Las preguntas de investigación aparecerán aquí.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="conclusiones" class="content-section">
+                <div class="bg-white p-8 rounded-xl shadow-sm">
+                    <h2 class="text-3xl font-bold text-teal-700 mb-4">Conclusiones e Implicaciones</h2>
+                    <div class="space-y-4 text-stone-700">
+                        <p>Las Representaciones Sociales son constructos dinámicos que dan forma a nuestra realidad. El
+                            modelo integrador propuesto demuestra cómo los procesos de <strong>anclaje</strong> y
+                            <strong>objetivación</strong> se entrelazan con los componentes
+                            <strong>cognitivo, afectivo y conductual</strong> de las actitudes, creando un ciclo
+                            continuo que va desde el pensamiento colectivo hasta la acción social y viceversa.</p>
+                        <div class="bg-teal-50 border-l-4 border-teal-500 p-4 rounded-r-lg">
+                            <h4 class="font-bold text-teal-800">Implicaciones para el Futuro:</h4>
+                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                <li>La investigación debe enfocarse en la interacción dinámica entre el núcleo y la
+                                    periferia de las RS.</li>
+                                <li>Es crucial analizar el papel de los medios digitales en la aceleración de los
+                                    procesos de anclaje y objetivación.</li>
+                                <li>Las intervenciones para el cambio social pueden ser más efectivas si se dirigen a
+                                    los componentes actitudinales o a los procesos de construcción de las RS.</li>
+                            </ul>
+                        </div>
+                        <p>El principal desafío sigue siendo operacionalizar y medir estos procesos sutiles. Se requiere
+                            una innovación metodológica constante y una rigurosa triangulación de enfoques cualitativos
+                            y cuantitativos para capturar la rica complejidad del pensamiento social.</p>
+                    </div>
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Generador de Resúmenes de Implicaciones ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese un texto (ej. un extracto de investigación, un artículo)
+                            y obtenga un resumen de sus implicaciones desde la perspectiva de las Representaciones
+                            Sociales.</p>
+                        <textarea id="implications-text-input" placeholder="Pegue su texto aquí..." class="w-full p-3 border border-stone-300 rounded-lg mb-4 h-32 focus:ring-2 focus:ring-teal-400 focus:border-transparent"></textarea>
+                        <button id="summarize-implications-btn" class="w-full bg-orange-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-700 transition-colors duration-200 shadow-md">
+                            Resumir Implicaciones ✨
+                        </button>
+                        <div id="implications-loading-indicator"
+                            class="text-center text-orange-700 font-semibold mt-4 hidden">
+                            Generando resumen... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-implications-summary"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            El resumen de las implicaciones aparecerá aquí.
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Análisis Comparativo de Fenómenos Sociales ✨
+                        </h3>
+                        <p class="text-stone-600 mb-4">Compare dos fenómenos sociales para entender cómo sus
+                            representaciones sociales podrían interactuar o diferenciarse.</p>
+                        <input type="text" id="phenomenon1-input" placeholder="Primer fenómeno (Ej: 'Inteligencia Artificial')" class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <input type="text" id="phenomenon2-input" placeholder="Segundo fenómeno (Ej: 'Automatización Laboral')" class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <button id="compare-phenomena-btn" class="w-full bg-pink-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-pink-700 transition-colors duration-200 shadow-md">
+                            Comparar Fenómenos ✨
+                        </button>
+                        <div id="comparison-loading-indicator"
+                            class="text-center text-pink-700 font-semibold mt-4 hidden">
+                            Realizando análisis comparativo... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-comparison-result"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            El resultado del análisis comparativo aparecerá aquí.
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Predictor de Evolución de Representaciones ✨
+                        </h3>
+                        <p class="text-stone-600 mb-4">Ingrese un fenómeno social y un factor influyente para predecir
+                            cómo su representación social podría evolucionar.</p>
+                        <input type="text" id="evolution-phenomenon-input" placeholder="Fenómeno social (Ej: 'Privacidad')" class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <input type="text" id="influencing-factor-input" placeholder="Factor influyente (Ej: 'Nuevas leyes de protección de datos')" class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <button id="predict-evolution-btn" class="w-full bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md">
+                            Predecir Evolución ✨
+                        </button>
+                        <div id="evolution-loading-indicator"
+                            class="text-center text-red-700 font-semibold mt-4 hidden">
+                            Prediciendo evolución... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-evolution-prediction"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            La predicción de la evolución aparecerá aquí.
+                        </div>
+                    </div>
+
+                    <div class="mt-12 p-6 bg-stone-100 rounded-lg shadow-inner">
+                        <h3 class="text-2xl font-bold text-teal-700 mb-4">Predictor de Resistencia al Cambio ✨</h3>
+                        <p class="text-stone-600 mb-4">Ingrese una representación social y el cambio propuesto para
+                            predecir posibles resistencias.</p>
+                        <input type="text" id="change-resistance-representation-input" placeholder="Representación social (Ej: 'La tecnología es fría')" class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <input type="text" id="proposed-change-input" placeholder="Cambio propuesto (Ej: 'Fomentar una visión más humana de la IA')" class="w-full p-3 border border-stone-300 rounded-lg mb-4 focus:ring-2 focus:ring-teal-400 focus:border-transparent">
+                        <button id="predict-change-resistance-btn" class="w-full bg-blue-800 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-900 transition-colors duration-200 shadow-md">
+                            Predecir Resistencia ✨
+                        </button>
+                        <div id="change-resistance-loading-indicator"
+                            class="text-center text-blue-800 font-semibold mt-4 hidden">
+                            Prediciendo resistencia... <span class="spinner"></span>
+                        </div>
+                        <div id="llm-change-resistance-prediction"
+                            class="mt-6 p-4 bg-white border border-stone-200 rounded-lg min-h-[80px] text-stone-700 italic">
+                            La predicción de la resistencia aparecerá aquí.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('.content-section');
+    const diagramCore = document.getElementById('diagram-core');
+    const peripheryElements = document.querySelectorAll('[id^="diagram-periphery"]');
+    const infoTitle = document.getElementById('info-title');
+    const infoText = document.getElementById('info-text');
+    const flowSteps = document.querySelectorAll('.flow-step');
+    const flowInfoText = document.getElementById('flow-info-text');
+
+    // LLM related elements for Anchoring/Objectification
+    const conceptInput = document.getElementById('concept-input');
+    const generateAnchoringBtn = document.getElementById('generate-anchoring-btn');
+    const generateObjectificationBtn = document.getElementById('generate-objectification-btn');
+    const llmLoadingIndicator = document.getElementById('llm-loading-indicator');
+    const llmGeneratedExample = document.getElementById('llm-generated-example');
+
+    // LLM related elements for Methodology Suggestion
+    const researchQuestionInput = document.getElementById('research-question-input');
+    const suggestMethodologyBtn = document.getElementById('suggest-methodology-btn');
+    const methodologyLoadingIndicator = document.getElementById('methodology-loading-indicator');
+    const llmSuggestedMethodology = document.getElementById('llm-suggested-methodology');
+
+    // LLM related elements for Phenomenon Analyzer
+    const phenomenonInput = document.getElementById('phenomenon-input');
+    const analyzePhenomenonBtn = document.getElementById('analyze-phenomenon-btn');
+    const phenomenonLoadingIndicator = document.getElementById('phenomenon-loading-indicator');
+    const llmAnalyzedPhenomenon = document.getElementById('llm-analyzed-phenomenon');
+
+    // LLM related elements for Attitude Analyzer
+    const attitudePhenomenonInput = document.getElementById('attitude-phenomenon-input');
+    const analyzeAttitudeBtn = document.getElementById('analyze-attitude-btn');
+    const attitudeLoadingIndicator = document.getElementById('attitude-loading-indicator');
+    const llmAnalyzedAttitude = document.getElementById('llm-analyzed-attitude');
+
+    // LLM related elements for Implication Summary Generator
+    const implicationsTextInput = document.getElementById('implications-text-input');
+    const summarizeImplicationsBtn = document.getElementById('summarize-implications-btn');
+    const implicationsLoadingIndicator = document.getElementById('implications-loading-indicator');
+    const llmImplicationsSummary = document.getElementById('llm-implications-summary');
+
+    // LLM related elements for Define Social Phenomenon
+    const definePhenomenonInput = document.getElementById('define-phenomenon-input');
+    const definePhenomenonBtn = document.getElementById('define-phenomenon-btn');
+    const definePhenomenonLoadingIndicator = document.getElementById('define-phenomenon-loading-indicator');
+    const llmDefinedPhenomenon = document.getElementById('llm-defined-phenomenon');
+
+    // LLM related elements for Comparative Analysis
+    const phenomenon1Input = document.getElementById('phenomenon1-input');
+    const phenomenon2Input = document.getElementById('phenomenon2-input');
+    const comparePhenomenaBtn = document.getElementById('compare-phenomena-btn');
+    const comparisonLoadingIndicator = document.getElementById('comparison-loading-indicator');
+    const llmComparisonResult = document.getElementById('llm-comparison-result');
+
+    // LLM related elements for Intervention Suggestions
+    const interventionInput = document.getElementById('intervention-input');
+    const suggestInterventionBtn = document.getElementById('suggest-intervention-btn');
+    const interventionLoadingIndicator = document.getElementById('intervention-loading-indicator');
+    const llmInterventionSuggestions = document.getElementById('llm-intervention-suggestions');
+
+    // LLM related elements for Key Concepts Generator
+    const keyConceptsPhenomenonInput = document.getElementById('key-concepts-phenomenon-input');
+    const generateKeyConceptsBtn = document.getElementById('generate-key-concepts-btn');
+    const keyConceptsLoadingIndicator = document.getElementById('key-concepts-loading-indicator');
+    const llmGeneratedKeyConcepts = document.getElementById('llm-generated-key-concepts');
+
+    // LLM related elements for Discourse Representation Identifier
+    const discourseInput = document.getElementById('discourse-input');
+    const identifyRepresentationsBtn = document.getElementById('identify-representations-btn');
+    const discourseLoadingIndicator = document.getElementById('discourse-loading-indicator');
+    const llmIdentifiedRepresentations = document.getElementById('llm-identified-representations');
+
+    // LLM related elements for Scenario Generator
+    const scenarioPhenomenonInput = document.getElementById('scenario-phenomenon-input');
+    const generateScenarioBtn = document.getElementById('generate-scenario-btn');
+    const scenarioLoadingIndicator = document.getElementById('scenario-loading-indicator');
+    const llmGeneratedScenario = document.getElementById('llm-generated-scenario');
+
+    // LLM related elements for Research Question Generator
+    const researchQuestionPhenomenonInput = document.getElementById('research-question-phenomenon-input');
+    const generateResearchQuestionsBtn = document.getElementById('generate-research-questions-btn');
+    const researchQuestionsLoadingIndicator = document.getElementById('research-questions-loading-indicator');
+    const llmGeneratedResearchQuestions = document.getElementById('llm-generated-research-questions');
+
+    // LLM related elements for Representation Evolution Predictor
+    const evolutionPhenomenonInput = document.getElementById('evolution-phenomenon-input');
+    const influencingFactorInput = document.getElementById('influencing-factor-input');
+    const predictEvolutionBtn = document.getElementById('predict-evolution-btn');
+    const evolutionLoadingIndicator = document.getElementById('evolution-loading-indicator');
+    const llmEvolutionPrediction = document.getElementById('llm-evolution-prediction');
+
+    // New LLM related elements for Change Resistance Predictor
+    const changeResistanceRepresentationInput = document.getElementById('change-resistance-representation-input');
+    const proposedChangeInput = document.getElementById('proposed-change-input');
+    const predictChangeResistanceBtn = document.getElementById('predict-change-resistance-btn');
+    const changeResistanceLoadingIndicator = document.getElementById('change-resistance-loading-indicator');
+    const llmChangeResistancePrediction = document.getElementById('llm-change-resistance-prediction');
+
+
+    const contentData = {
+        core: {
+            title: 'Núcleo Central',
+            text: 'Es el componente más estable y fundamental de la representación. Está anclado en la memoria colectiva y define el significado esencial del objeto social. Es resistente al cambio y asegura la coherencia del grupo.'
+        },
+        periphery: {
+            title: 'Elementos Periféricos',
+            text: 'Son los componentes más flexibles y sensibles al contexto. Permiten la adaptación de la representación a situaciones específicas y variaciones individuales, actuando como un escudo protector del núcleo central.'
+        }
+    };
+
+    function showSection(targetId) {
+        sections.forEach(section => {
+            section.classList.remove('active');
+            if (section.id === targetId) {
+                section.classList.add('active');
+            }
+        });
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.dataset.target === targetId) {
+                link.classList.add('active');
+            }
+        });
+
+        if (targetId === 'modelo' && !window.attitudeChartInstance) {
+            createAttitudeChart();
+        }
+        if (targetId === 'metodologia' && !window.methodologyChartInstance) {
+            createMethodologyChart();
+        }
+    }
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = e.currentTarget.dataset.target;
+            showSection(targetId);
+        });
+    });
+
+    diagramCore.addEventListener('click', () => {
+        infoTitle.textContent = contentData.core.title;
+        infoText.textContent = contentData.core.text;
+    });
+
+    peripheryElements.forEach(el => {
+        el.addEventListener('click', () => {
+            infoTitle.textContent = contentData.periphery.title;
+            infoText.textContent = contentData.periphery.text;
+        });
+    });
+    
+    flowSteps.forEach(step => {
+        step.addEventListener('mouseover', () => {
+            flowInfoText.textContent = step.dataset.info;
+        });
+    });
+
+    async function callGeminiAPI(prompt, loadingIndicator, outputElement) {
+        loadingIndicator.classList.remove('hidden');
+        outputElement.textContent = ""; // Clear previous output
+
+        let chatHistory = [];
+        chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+        const payload = { contents: chatHistory };
+        const apiKey = ""; // Canvas will provide this in runtime
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                const text = result.candidates[0].content.parts[0].text;
+                outputElement.textContent = text;
+            } else {
+                outputElement.textContent = "Error: No se pudo generar la respuesta. La respuesta del LLM no tiene el formato esperado.";
+            }
+        } catch (error) {
+            console.error("Error al llamar a la API de Gemini:", error);
+            outputElement.textContent = "Error de conexión. Por favor, intente más tarde.";
+        } finally {
+            loadingIndicator.classList.add('hidden');
+        }
+    }
+
+    async function generateExample(type) {
+        const concept = conceptInput.value.trim();
+        if (!concept) {
+            llmGeneratedExample.textContent = "Por favor, ingrese un concepto para generar un ejemplo.";
+            return;
+        }
+        let prompt = "";
+        if (type === 'anchoring') {
+            prompt = `Genera un ejemplo conciso de cómo el concepto de '${concept}' podría ser anclado en una representación social. Enfócate en la integración de lo nuevo con lo familiar.`;
+        } else if (type === 'objectification') {
+            prompt = `Genera un ejemplo conciso de cómo el concepto de '${concept}' podría ser objetivado en una representación social. Enfócate en transformar lo abstracto en algo concreto o visual.`;
+        }
+        await callGeminiAPI(prompt, llmLoadingIndicator, llmGeneratedExample);
+    }
+
+    async function suggestMethodology() {
+        const researchQuestion = researchQuestionInput.value.trim();
+        if (!researchQuestion) {
+            llmSuggestedMethodology.textContent = "Por favor, ingrese una pregunta de investigación para obtener sugerencias.";
+            return;
+        }
+        const prompt = `Dada la siguiente pregunta de investigación para el estudio de Representaciones Sociales: "${researchQuestion}", sugiere un enfoque metodológico (cualitativo, cuantitativo o mixto) y al menos 3 técnicas de recolección y 3 de análisis de datos específicas que serían apropiadas. Formatea la respuesta en párrafos claros, explicando brevemente por qué cada técnica es relevante.`;
+        await callGeminiAPI(prompt, methodologyLoadingIndicator, llmSuggestedMethodology);
+    }
+
+    async function analyzePhenomenon() {
+        const phenomenon = phenomenonInput.value.trim();
+        if (!phenomenon) {
+            llmAnalyzedPhenomenon.textContent = "Por favor, ingrese un fenómeno social para analizar.";
+            return;
+        }
+        const prompt = `Para el fenómeno social '${phenomenon}', describe brevemente cómo podrían ser su núcleo central y sus elementos periféricos dentro de una Representación Social. Proporciona un ejemplo para cada uno.`;
+        await callGeminiAPI(prompt, phenomenonLoadingIndicator, llmAnalyzedPhenomenon);
+    }
+
+    async function analyzeAttitude() {
+        const phenomenon = attitudePhenomenonInput.value.trim();
+        if (!phenomenon) {
+            llmAnalyzedAttitude.textContent = "Por favor, ingrese un fenómeno social para analizar la actitud.";
+            return;
+        }
+        const prompt = `Para el fenómeno social '${phenomenon}', describe cómo se manifestarían los tres componentes de la actitud (cognitivo, afectivo y conductual) en una Representación Social hipotética. Sé conciso y proporciona un ejemplo para cada componente.`;
+        await callGeminiAPI(prompt, attitudeLoadingIndicator, llmAnalyzedAttitude);
+    }
+
+    async function generateImplicationSummary() {
+        const text = implicationsTextInput.value.trim();
+        if (!text) {
+            llmImplicationsSummary.textContent = "Por favor, ingrese un texto para generar el resumen de implicaciones.";
+            return;
+        }
+        const prompt = `Dado el siguiente texto, resume sus principales implicaciones desde la perspectiva de la teoría de las Representaciones Sociales. Enfócate en cómo el texto podría reflejar o influir en el pensamiento colectivo, las actitudes o las prácticas sociales. Sé conciso y objetivo:\n\n"${text}"`;
+        await callGeminiAPI(prompt, implicationsLoadingIndicator, llmImplicationsSummary);
+    }
+
+    async function defineSocialPhenomenon() {
+        const phenomenon = definePhenomenonInput.value.trim();
+        if (!phenomenon) {
+            llmDefinedPhenomenon.textContent = "Por favor, ingrese un fenómeno social para definir.";
+            return;
+        }
+        const prompt = `Define el fenómeno social '${phenomenon}' desde la perspectiva de la teoría de las Representaciones Sociales. Sé conciso y enfócate en cómo se construiría socialmente o qué significado colectivo podría tener.`;
+        await callGeminiAPI(prompt, definePhenomenonLoadingIndicator, llmDefinedPhenomenon);
+    }
+
+    async function compareSocialPhenomena() {
+        const phenomenon1 = phenomenon1Input.value.trim();
+        const phenomenon2 = phenomenon2Input.value.trim();
+        if (!phenomenon1 || !phenomenon2) {
+            llmComparisonResult.textContent = "Por favor, ingrese ambos fenómenos sociales para comparar.";
+            return;
+        }
+        const prompt = `Realiza un análisis comparativo de las Representaciones Sociales para los siguientes dos fenómenos: '${phenomenon1}' y '${phenomenon2}'. Destaca sus posibles similitudes y diferencias en cómo podrían ser construidos, entendidos o manifestados colectivamente. Sé conciso y objetivo.`;
+        await callGeminiAPI(prompt, comparisonLoadingIndicator, llmComparisonResult);
+    }
+
+    async function suggestInterventions() {
+        const socialRepresentation = interventionInput.value.trim();
+        if (!socialRepresentation) {
+            llmInterventionSuggestions.textContent = "Por favor, ingrese una representación social o fenómeno para sugerir intervenciones.";
+            return;
+        }
+        const prompt = `Dada la representación social o fenómeno social: '${socialRepresentation}', sugiere al menos 3 intervenciones o aplicaciones prácticas desde la perspectiva de la teoría de las Representaciones Sociales. Enfócate en cómo estas intervenciones podrían buscar modificar la representación, influir en actitudes o cambiar comportamientos. Sé conciso y proporciona ejemplos claros.`;
+        await callGeminiAPI(prompt, interventionLoadingIndicator, llmInterventionSuggestions);
+    }
+
+    async function generateKeyConcepts() {
+        const phenomenon = keyConceptsPhenomenonInput.value.trim();
+        if (!phenomenon) {
+            llmGeneratedKeyConcepts.textContent = "Por favor, ingrese un fenómeno social para generar conceptos clave.";
+            return;
+        }
+        const prompt = `Dado el fenómeno social '${phenomenon}', genera una lista de 3 a 5 conceptos clave que serían relevantes para su estudio desde la perspectiva de la teoría de las Representaciones Sociales. Sé conciso y proporciona una breve explicación para cada concepto.`;
+        await callGeminiAPI(prompt, keyConceptsLoadingIndicator, llmGeneratedKeyConcepts);
+    }
+
+    async function identifyRepresentationsInDiscourse() {
+        const discourseText = discourseInput.value.trim();
+        if (!discourseText) {
+            llmIdentifiedRepresentations.textContent = "Por favor, ingrese un texto o discurso para identificar representaciones.";
+            return;
+        }
+        const prompt = `Analiza el siguiente texto o discurso e identifica posibles Representaciones Sociales presentes en él. Explica brevemente cómo se manifiestan estas representaciones (por ejemplo, a través de conceptos clave, metáforas, imágenes, etc.). Sé conciso y objetivo:\n\n"${discourseText}"`;
+        await callGeminiAPI(prompt, discourseLoadingIndicator, llmIdentifiedRepresentations);
+    }
+
+    async function generateSocialScenario() {
+        const phenomenon = scenarioPhenomenonInput.value.trim();
+        if (!phenomenon) {
+            llmGeneratedScenario.textContent = "Por favor, ingrese un fenómeno social para generar un escenario.";
+            return;
+        }
+        const prompt = `Genera un breve escenario social (2-3 oraciones) donde la representación social de '${phenomenon}' se manifieste claramente en las interacciones o percepciones de los personajes. Sé conciso y utiliza lenguaje claro.`;
+        await callGeminiAPI(prompt, scenarioLoadingIndicator, llmGeneratedScenario);
+    }
+
+    async function generateResearchQuestions() {
+        const phenomenon = researchQuestionPhenomenonInput.value.trim();
+        if (!phenomenon) {
+            llmGeneratedResearchQuestions.textContent = "Por favor, ingrese un fenómeno social para generar preguntas de investigación.";
+            return;
+        }
+        const prompt = `Para el fenómeno social '${phenomenon}', genera 3 preguntas de investigación que podrían ser exploradas utilizando la teoría de las Representaciones Sociales. Las preguntas deben ser específicas y enfocarse en la construcción social, la estructura o las funciones de la representación.`;
+        await callGeminiAPI(prompt, researchQuestionsLoadingIndicator, llmGeneratedResearchQuestions);
+    }
+
+    async function predictRepresentationEvolution() {
+        const phenomenon = evolutionPhenomenonInput.value.trim();
+        const factor = influencingFactorInput.value.trim();
+        if (!phenomenon || !factor) {
+            llmEvolutionPrediction.textContent = "Por favor, ingrese tanto el fenómeno social como el factor influyente para predecir la evolución.";
+            return;
+        }
+        const prompt = `Dado el fenómeno social '${phenomenon}' y el factor influyente '${factor}', predice cómo podría evolucionar la representación social de '${phenomenon}'. Considera posibles cambios en su núcleo central, elementos periféricos, actitudes asociadas o prácticas sociales. Sé conciso y objetivo.`;
+        await callGeminiAPI(prompt, evolutionLoadingIndicator, llmEvolutionPrediction);
+    }
+
+    async function predictChangeResistance() {
+        const socialRepresentation = changeResistanceRepresentationInput.value.trim();
+        const proposedChange = proposedChangeInput.value.trim();
+        if (!socialRepresentation || !proposedChange) {
+            llmChangeResistancePrediction.textContent = "Por favor, ingrese la representación social y el cambio propuesto.";
+            return;
+        }
+        const prompt = `Dada la representación social: '${socialRepresentation}' y el cambio propuesto: '${proposedChange}', predice los posibles desafíos, barreras o resistencias que podrían surgir al intentar implementar este cambio. Enfócate en aspectos relacionados con la estructura de la representación, las actitudes o las prácticas sociales. Sé conciso y objetivo.`;
+        await callGeminiAPI(prompt, changeResistanceLoadingIndicator, llmChangeResistancePrediction);
+    }
+
+
+    generateAnchoringBtn.addEventListener('click', () => generateExample('anchoring'));
+    generateObjectificationBtn.addEventListener('click', () => generateExample('objectification'));
+    suggestMethodologyBtn.addEventListener('click', suggestMethodology);
+    analyzePhenomenonBtn.addEventListener('click', analyzePhenomenon);
+    analyzeAttitudeBtn.addEventListener('click', analyzeAttitude);
+    summarizeImplicationsBtn.addEventListener('click', generateImplicationSummary);
+    definePhenomenonBtn.addEventListener('click', defineSocialPhenomenon);
+    comparePhenomenaBtn.addEventListener('click', compareSocialPhenomena);
+    suggestInterventionBtn.addEventListener('click', suggestInterventions);
+    generateKeyConceptsBtn.addEventListener('click', generateKeyConcepts);
+    identifyRepresentationsBtn.addEventListener('click', identifyRepresentationsInDiscourse);
+    generateScenarioBtn.addEventListener('click', generateSocialScenario);
+    generateResearchQuestionsBtn.addEventListener('click', generateResearchQuestions);
+    predictEvolutionBtn.addEventListener('click', predictRepresentationEvolution);
+    predictChangeResistanceBtn.addEventListener('click', predictChangeResistance); // New event listener
+
+    function createAttitudeChart() {
+        const ctx = document.getElementById('attitudeChart').getContext('2d');
+        window.attitudeChartInstance = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Cognitivo (Creencias)', 'Afectivo (Emociones)', 'Conductual (Intención)'],
+                datasets: [{
+                    label: 'Componentes de la Actitud',
+                    data: [8, 7, 6],
+                    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                    borderColor: 'rgba(245, 158, 11, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                    pointBorderColor: '#fff',
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { display: true },
+                        suggestedMin: 0,
+                        suggestedMax: 10,
+                        ticks: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createMethodologyChart() {
+        const ctx = document.getElementById('methodologyChart').getContext('2d');
+        window.methodologyChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Cualitativo', 'Cuantitativo', 'Mixto (Triangulación)'],
+                datasets: [{
+                    label: 'Enfoque Metodológico',
+                    data: [45, 25, 30],
+                    backgroundColor: [
+                        'rgba(20, 184, 166, 0.7)',
+                        'rgba(245, 158, 11, 0.7)',
+                        'rgba(107, 114, 128, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(20, 184, 166, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(107, 114, 128, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    title: {
+                        display: false,
+                        text: 'Balance Metodológico Recomendado'
+                    }
+                }
+            }
+        });
+    }
+
+    showSection('inicio');
+});
+    </script>
+</body>
+
+</html>
